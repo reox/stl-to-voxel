@@ -34,6 +34,8 @@ def doExport(inputFilePath, outputFilePath, resolution):
         exportXyz(vol, bounding_box, outputFilePath)
     elif outputFileExtension == '.svx':
         exportSvx(vol, bounding_box, outputFilePath, scale, shift)
+    elif outputFileExtension == '.mhd':
+        exportMhd(vol, bounding_box, outputFilePath)
 
 def exportPngs(voxels, bounding_box, outputFilePath):
     size = str(len(str(bounding_box[2]))+1)
@@ -81,6 +83,13 @@ def exportSvx(voxels, bounding_box, outputFilePath, scale, shift):
             zipFile.writestr(("density/slice%0" + size + "d.png")%height, output.getvalue())
         zipFile.writestr("manifest.xml",manifest)
 
+def exportMhd(voxels, bounding_box, outputFilePath):
+    import SimpleITK as sitk
+    # We get the voxel data in zxy but need to provide it as zyx for sitk.
+    voxels = np.swapaxes(voxels, 1, 2)
+    print("MHD voxel size:", voxels.shape)
+    sitk.WriteImage(sitk.GetImageFromArray(voxels.astype(np.uint8)), outputFilePath)
+
 
 def file_choices(choices,fname):
     filename, ext = os.path.splitext(fname)
@@ -94,6 +103,6 @@ def file_choices(choices,fname):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert STL files to voxels')
     parser.add_argument('input', nargs='?', type=lambda s:file_choices(('.stl'),s))
-    parser.add_argument('output', nargs='?', type=lambda s:file_choices(('.png', '.xyz', '.svx'),s))
+    parser.add_argument('output', nargs='?', type=lambda s:file_choices(('.png', '.xyz', '.svx', '.mhd'),s))
     args = parser.parse_args()
     doExport(args.input, args.output, 100)
