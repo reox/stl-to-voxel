@@ -2,6 +2,7 @@
 import argparse
 import os.path
 import io
+import sys
 import xml.etree.cElementTree as ET
 from zipfile import ZipFile
 import zipfile
@@ -14,21 +15,23 @@ import stl_reader
 import perimeter
 from util import arrayToWhiteGreyscalePixel, padVoxelArray
 
+import tqdm
+
 
 def doExport(inputFilePath, outputFilePath, resolution):
     mesh = list(stl_reader.read_stl_verticies(inputFilePath))
-    (scale, shift, bounding_box) = slice.calculateScaleAndShift(mesh, resolution)
+    scale, shift, bounding_box = slice.calculateScaleAndShift(mesh, resolution)
     mesh = list(slice.scaleAndShiftMesh(mesh, scale, shift))
     #Note: vol should be addressed with vol[z][x][y]
-    vol = np.zeros((bounding_box[2],bounding_box[0],bounding_box[1]), dtype=bool)
-    for height in range(bounding_box[2]):
-        print('Processing layer %d/%d'%(height+1,bounding_box[2]))
+    vol = np.empty((bounding_box[2], bounding_box[0], bounding_box[1]), dtype=bool)
+    for height in tqdm.tqdm(range(bounding_box[2]), desc='Processing Slice'):
         lines = slice.toIntersectingLines(mesh, height)
         prepixel = np.zeros((bounding_box[0], bounding_box[1]), dtype=bool)
         perimeter.linesToVoxels(lines, prepixel)
         vol[height] = prepixel
     vol, bounding_box = padVoxelArray(vol)
-    outputFilePattern, outputFileExtension = os.path.splitext(outputFilePath)
+
+    _, outputFileExtension = os.path.splitext(outputFilePath)
     if outputFileExtension == '.png':
         exportPngs(vol, bounding_box, outputFilePath)
     elif outputFileExtension == '.xyz':
@@ -89,7 +92,7 @@ def exportMhd(voxels, bounding_box, outputFilePath, scale):
     # We get the voxel data in zxy but need to provide it as zyx for sitk.
     voxels = np.swapaxes(voxels, 1, 2)
     spacing = (1 / np.array(scale)).tolist()
-    print("MHD voxel size:", voxels.shape, "spacing:", spacing)
+    print("MHD voxel size:", voxels.shape, "spacing:", spacing, file=sys.stderr)
     img = sitk.GetImageFromArray(voxels.astype(np.uint8))
     img.SetSpacing(spacing)
     sitk.WriteImage(img, outputFilePath)

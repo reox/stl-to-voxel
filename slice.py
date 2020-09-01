@@ -1,5 +1,6 @@
 import math
 import itertools
+import sys
 
 import numpy as np
 
@@ -97,14 +98,13 @@ def whereLineCrossesZ(p1, p2, z):
 
 def calculateScaleAndShift(mesh, resolution):
     """
-    Calculates the bounding box in physical units, the shift vector to bring
+    Calculates the bounding box in voxel units, the shift vector to bring
     one corner to zero and a scale factor based on the XY resolution.
     """
     allPoints = np.array([item for sublist in mesh for item in sublist])
     mins = allPoints.min(axis=0)
     maxs = allPoints.max(axis=0)
-    print(mins)
-    print(maxs)
+    print("Physical Bounding box found between {} and {}".format(mins, maxs), file=sys.stderr)
     # shift: vector which can be added to the mins vector to get to (0,0,0)
     # --> physical units
     shift = -mins
@@ -113,6 +113,7 @@ def calculateScaleAndShift(mesh, resolution):
     scale = [resolution] * 3
     # Returns the scaled bounding box --> this is now in voxel units
     bounding_box = np.ceil(maxs - mins).astype(np.int) * resolution
+    print("Image Size: {} voxels".format(bounding_box), file=sys.stderr)
     return (scale, shift, bounding_box)
 
 
