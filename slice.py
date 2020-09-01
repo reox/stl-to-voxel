@@ -106,13 +106,13 @@ def calculateScaleAndShift(mesh, resolution):
     print(mins)
     print(maxs)
     # shift: vector which can be added to the mins vector to get to (0,0,0)
+    # --> physical units
     shift = -mins
 
-    xyscale = float(resolution - 1) / (max(maxs[0] - mins[0], maxs[1] - mins[1]))
-    xyscale = 1
-    #TODO: Change this to return one scale. If not, verify svx exporting still works.
-    scale = [xyscale, xyscale, xyscale]
-    bounding_box = np.ceil(maxs - mins).astype(np.int)
+    # --> voxel units per physical units
+    scale = [resolution] * 3
+    # Returns the scaled bounding box --> this is now in voxel units
+    bounding_box = np.ceil(maxs - mins).astype(np.int) * resolution
     return (scale, shift, bounding_box)
 
 

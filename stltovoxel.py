@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import os.path
 import io
@@ -35,7 +36,7 @@ def doExport(inputFilePath, outputFilePath, resolution):
     elif outputFileExtension == '.svx':
         exportSvx(vol, bounding_box, outputFilePath, scale, shift)
     elif outputFileExtension == '.mhd':
-        exportMhd(vol, bounding_box, outputFilePath)
+        exportMhd(vol, bounding_box, outputFilePath, scale)
 
 def exportPngs(voxels, bounding_box, outputFilePath):
     size = str(len(str(bounding_box[2]))+1)
@@ -83,12 +84,15 @@ def exportSvx(voxels, bounding_box, outputFilePath, scale, shift):
             zipFile.writestr(("density/slice%0" + size + "d.png")%height, output.getvalue())
         zipFile.writestr("manifest.xml",manifest)
 
-def exportMhd(voxels, bounding_box, outputFilePath):
+def exportMhd(voxels, bounding_box, outputFilePath, scale):
     import SimpleITK as sitk
     # We get the voxel data in zxy but need to provide it as zyx for sitk.
     voxels = np.swapaxes(voxels, 1, 2)
-    print("MHD voxel size:", voxels.shape)
-    sitk.WriteImage(sitk.GetImageFromArray(voxels.astype(np.uint8)), outputFilePath)
+    spacing = (1 / np.array(scale)).tolist()
+    print("MHD voxel size:", voxels.shape, "spacing:", spacing)
+    img = sitk.GetImageFromArray(voxels.astype(np.uint8))
+    img.SetSpacing(spacing)
+    sitk.WriteImage(img, outputFilePath)
 
 
 def file_choices(choices,fname):
@@ -101,8 +105,15 @@ def file_choices(choices,fname):
     return fname
 
 if __name__ == '__main__':
+    """
+    Slicing is along the z-axis of the image
+    """
     parser = argparse.ArgumentParser(description='Convert STL files to voxels')
+    parser.add_argument('--scale', '-s', type=int, default=1,
+                        help='Scale the image by given factor '
+                             '(makes the voxel size smaller and the number of voxels larger). '
+                             'The unit of this parameter is voxel units per physical units')
     parser.add_argument('input', nargs='?', type=lambda s:file_choices(('.stl'),s))
     parser.add_argument('output', nargs='?', type=lambda s:file_choices(('.png', '.xyz', '.svx', '.mhd'),s))
     args = parser.parse_args()
-    doExport(args.input, args.output, 100)
+    doExport(args.input, args.output, args.scale)
