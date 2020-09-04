@@ -22,12 +22,20 @@ def doExport(inputFilePath, outputFilePath, resolution, size):
     mesh = list(stl_reader.read_stl_verticies(inputFilePath))
     scale, shift, bounding_box = slice.calculateScaleAndShift(mesh, resolution)
     if size:
+        size = np.array(size)
         # Here, bounding box is still (x,y,z)
         for i, d in enumerate(['x', 'y', 'z']):
             if size[i] < bounding_box[i]:
                 raise ValueError("Supplied size for Dimension {} ({}) is less than computed bounding box ({})!".format(d, size[i], bounding_box[i]))
-        print("Overwriting computed size {} with new size {}".format(bounding_box, np.array(size)), file=sys.stderr)
-        bounding_box = np.array(size)
+        print("Overwriting computed size {} with new size {}".format(bounding_box, size), file=sys.stderr)
+        # Need to adjust the scale in order to center the image in the frame
+        offset = (size - bounding_box) / 2
+        # apply scaling
+        offset /= scale
+        # Add to shift
+        shift += offset
+        # set new bounding box
+        bounding_box = size
 
     mesh = list(slice.scaleAndShiftMesh(mesh, scale, shift))
     #Note: vol should be addressed with vol[z][x][y]
