@@ -18,9 +18,17 @@ from util import arrayToWhiteGreyscalePixel, padVoxelArray
 import tqdm
 
 
-def doExport(inputFilePath, outputFilePath, resolution):
+def doExport(inputFilePath, outputFilePath, resolution, size):
     mesh = list(stl_reader.read_stl_verticies(inputFilePath))
     scale, shift, bounding_box = slice.calculateScaleAndShift(mesh, resolution)
+    if size:
+        # Here, bounding box is still (x,y,z)
+        for i, d in enumerate(['x', 'y', 'z']):
+            if size[i] < bounding_box[i]:
+                raise ValueError("Supplied size for Dimension {} ({}) is less than computed bounding box ({})!".format(d, size[i], bounding_box[i]))
+        print("Overwriting computed size {} with new size {}".format(bounding_box, np.array(size)), file=sys.stderr)
+        bounding_box = np.array(size)
+
     mesh = list(slice.scaleAndShiftMesh(mesh, scale, shift))
     #Note: vol should be addressed with vol[z][x][y]
     vol = np.empty((bounding_box[2], bounding_box[0], bounding_box[1]), dtype=bool)
@@ -116,7 +124,9 @@ if __name__ == '__main__':
                         help='Scale the image by given factor '
                              '(makes the voxel size smaller and the number of voxels larger). '
                              'The unit of this parameter is voxel units per physical units')
+    parser.add_argument('--size', nargs=3, type=int, help='size of the voxel image (x, y, z), overwrites bounding box calculation.'
+                        'NOTE: extra 2 voxels will be added in each dimension regardless of this setting.')
     parser.add_argument('input', nargs='?', type=lambda s:file_choices(('.stl'),s))
     parser.add_argument('output', nargs='?', type=lambda s:file_choices(('.png', '.xyz', '.svx', '.mhd'),s))
     args = parser.parse_args()
-    doExport(args.input, args.output, args.scale)
+    doExport(args.input, args.output, args.scale, args.size)
