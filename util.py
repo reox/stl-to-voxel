@@ -31,11 +31,11 @@ def arrayToWhiteGreyscalePixel(array, pixels):
                 pixels[i, j] = 255
 
 def padVoxelArray(voxels):
-    shape = voxels.shape
-    new_shape = (shape[0]+2,shape[1]+2,shape[2]+2)
-    vol = np.zeros(new_shape, dtype=bool)
-    for a in range(shape[0]):
-        for b in range(shape[1]):
-            for c in range(shape[2]):
-                vol[a+1,b+1,c+1] = voxels[a,b,c]
-    return vol, (new_shape[1],new_shape[2],new_shape[0])
+    """
+    Adds one voxel in each direction (negative and positive)
+    and returns the new bounding box size
+    """
+    a, b, c = voxels.shape
+    vol = np.zeros((a + 2, b + 2, c + 2), dtype=bool)
+    vol[1:a+1,1:b+1,1:c+1] = voxels
+    return vol, (b, c, a)

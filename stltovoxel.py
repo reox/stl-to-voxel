@@ -45,7 +45,11 @@ def doExport(inputFilePath, outputFilePath, resolution, size):
         prepixel = np.zeros((bounding_box[0], bounding_box[1]), dtype=bool)
         perimeter.linesToVoxels(lines, prepixel)
         vol[height] = prepixel
-    vol, bounding_box = padVoxelArray(vol)
+
+    if not size:
+        # Adds two extra voxels
+        # Only needed if bbox is not given explicitly
+        vol, bounding_box = padVoxelArray(vol)
 
     _, outputFileExtension = os.path.splitext(outputFilePath)
     if outputFileExtension == '.png':
@@ -132,8 +136,7 @@ if __name__ == '__main__':
                         help='Scale the image by given factor '
                              '(makes the voxel size smaller and the number of voxels larger). '
                              'The unit of this parameter is voxel units per physical units')
-    parser.add_argument('--size', nargs=3, type=int, help='size of the voxel image (x, y, z), overwrites bounding box calculation.'
-                        'NOTE: extra 2 voxels will be added in each dimension regardless of this setting.')
+    parser.add_argument('--size', nargs=3, type=int, help='size of the voxel image (x, y, z), overwrites bounding box calculation.')
     parser.add_argument('input', nargs='?', type=lambda s:file_choices(('.stl'),s))
     parser.add_argument('output', nargs='?', type=lambda s:file_choices(('.png', '.xyz', '.svx', '.mhd'),s))
     args = parser.parse_args()
